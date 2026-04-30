@@ -106,16 +106,22 @@ export default function PostulerPage() {
         <div className="max-w-lg w-full bg-white rounded-2xl shadow-xl p-8 text-center">
           <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
           <h1 className="text-3xl font-extrabold mb-3">Candidature envoyée !</h1>
-          <p className="text-stone-600 mb-6 leading-relaxed">
+          <p className="text-stone-600 mb-4 leading-relaxed">
             Merci {form.prenom}, on a bien reçu votre candidature. On vous recontacte sous 24h
             ouvrées par téléphone ou email.
           </p>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-brand-500 hover:text-brand-700 font-medium text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" /> Retour à l&apos;accueil
-          </Link>
+          <div className="bg-brand-50 border border-brand-500/30 rounded-lg p-3 mb-6 text-sm text-brand-900 inline-flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-brand-500 shrink-0" />
+            <span><strong>Pensez à regarder vos spams !</strong> Notre email de confirmation peut y atterrir.</span>
+          </div>
+          <div>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-brand-500 hover:text-brand-700 font-medium text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" /> Retour à l&apos;accueil
+            </Link>
+          </div>
         </div>
       </main>
     );
