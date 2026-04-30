@@ -19,21 +19,30 @@ interface FormState {
   nom: string;
   email: string;
   telephone: string;
+  entreprise: string;
+  siren_siret: string;
   metier: string;
   metier_autre: string;
   ville: string;
   code_postal: string;
-  declare: '' | 'oui' | 'non';
   dispo: '' | 'des_maintenant' | 'd_ici_un_mois' | 'd_ici_3_mois';
   message: string;
   consent: boolean;
 }
 
+// Valide le format d'un SIREN (9 chiffres) ou SIRET (14 chiffres)
+function isValidSirenOrSiret(value: string): boolean {
+  const digits = value.replace(/\s/g, '');
+  if (!/^\d+$/.test(digits)) return false;
+  return digits.length === 9 || digits.length === 14;
+}
+
 export default function PostulerPage() {
   const [form, setForm] = useState<FormState>({
     prenom: '', nom: '', email: '', telephone: '',
+    entreprise: '', siren_siret: '',
     metier: '', metier_autre: '', ville: '', code_postal: '',
-    declare: '', dispo: '', message: '', consent: false,
+    dispo: '', message: '', consent: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -48,9 +57,12 @@ export default function PostulerPage() {
     setError('');
 
     if (!form.consent) { setError('Vous devez accepter le traitement de vos données.'); return; }
-    if (form.declare !== 'oui') { setError('Le travail au noir est exclu — vous devez être déclaré pour postuler.'); return; }
-    if (!form.prenom || !form.nom || !form.email || !form.telephone || !form.metier || !form.ville) {
+    if (!form.prenom || !form.nom || !form.email || !form.telephone || !form.entreprise || !form.siren_siret || !form.metier || !form.ville) {
       setError('Tous les champs marqués * sont obligatoires.');
+      return;
+    }
+    if (!isValidSirenOrSiret(form.siren_siret)) {
+      setError('SIREN (9 chiffres) ou SIRET (14 chiffres) invalide. Vérifiez votre numéro sur https://annuaire-entreprises.data.gouv.fr');
       return;
     }
 
@@ -68,6 +80,8 @@ export default function PostulerPage() {
           nom: form.nom.trim(),
           email: form.email.trim(),
           telephone: form.telephone.trim(),
+          entreprise: form.entreprise.trim(),
+          siren_siret: form.siren_siret.replace(/\s/g, ''),
           metier: form.metier === 'Autre' ? form.metier_autre.trim() : form.metier,
           ville: form.ville.trim(),
           code_postal: form.code_postal.trim(),
@@ -161,16 +175,42 @@ export default function PostulerPage() {
             <Field label="Code postal" value={form.code_postal} onChange={(v) => update('code_postal', v)} disabled={submitting} />
           </div>
 
+          <Field
+            label="Nom de l'entreprise *"
+            value={form.entreprise}
+            onChange={(v) => update('entreprise', v)}
+            disabled={submitting}
+            placeholder="Ex : SARL Dupont BTP"
+          />
+
           <div>
-            <Label>Êtes-vous déclaré (auto-entrepreneur, EI, SARL…) ? *</Label>
-            <div className="flex gap-3">
-              <Radio name="declare" value="oui" checked={form.declare === 'oui'} onChange={(v) => update('declare', v as 'oui')} disabled={submitting} label="Oui, je suis déclaré" />
-              <Radio name="declare" value="non" checked={form.declare === 'non'} onChange={(v) => update('declare', v as 'non')} disabled={submitting} label="Non" />
-            </div>
-            {form.declare === 'non' && (
+            <Label>SIREN (9 chiffres) ou SIRET (14 chiffres) *</Label>
+            <input
+              type="text"
+              value={form.siren_siret}
+              onChange={(e) => update('siren_siret', e.target.value)}
+              disabled={submitting}
+              required
+              inputMode="numeric"
+              pattern="[0-9 ]+"
+              placeholder="123 456 789 ou 12345678901234"
+              className="w-full h-11 px-3 rounded-lg border border-stone-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none"
+            />
+            <p className="text-xs text-stone-500 mt-1">
+              Vous pouvez vérifier votre numéro sur{' '}
+              <a
+                href="https://annuaire-entreprises.data.gouv.fr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-500 underline"
+              >
+                annuaire-entreprises.data.gouv.fr
+              </a>
+            </p>
+            {form.siren_siret && !isValidSirenOrSiret(form.siren_siret) && (
               <p className="text-sm text-red-600 mt-2 flex items-start gap-1.5">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                Désolé, on ne fait pas de travail au noir. Vous pouvez postuler dès que vous serez déclaré.
+                Format invalide — il faut 9 chiffres (SIREN) ou 14 chiffres (SIRET).
               </p>
             )}
           </div>
@@ -229,7 +269,7 @@ export default function PostulerPage() {
 
           <button
             type="submit"
-            disabled={submitting || form.declare === 'non'}
+            disabled={submitting}
             className="w-full bg-brand-500 hover:bg-brand-600 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-base"
           >
             {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
@@ -267,26 +307,3 @@ function Field({
   );
 }
 
-function Radio({
-  name, value, checked, onChange, label, disabled,
-}: {
-  name: string; value: string; checked: boolean; onChange: (v: string) => void;
-  label: string; disabled?: boolean;
-}) {
-  return (
-    <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 cursor-pointer transition-colors ${
-      checked ? 'border-brand-500 bg-brand-50' : 'border-stone-200 hover:border-stone-300'
-    } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}>
-      <input
-        type="radio"
-        name={name}
-        value={value}
-        checked={checked}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        className="sr-only"
-      />
-      <span className={`text-sm font-medium ${checked ? 'text-brand-700' : 'text-stone-700'}`}>{label}</span>
-    </label>
-  );
-}
